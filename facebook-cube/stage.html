@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Web VR boilerplate</title>
+    <title>WebVR Demo</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, shrink-to-fit=no">
     <meta name="mobile-web-app-capable" content="yes">
@@ -74,7 +74,6 @@
 -->
 <script src="js/VRControls.js"></script>
 
-<!-- <script src="js/OrbitControls.js"></script> -->
 
 <!--
   VREffect.js handles stereo camera setup and rendering.
@@ -102,11 +101,15 @@
     // Various global THREE.Objects.
     var scene;
     var cube;
+    var textMesh;
     var controls;
     var effect;
     var camera;
     // EnterVRButton for rendering enter/exit UI.
     var vrButton;
+
+    //User Profile
+    var profile = JSON.parse(localStorage.getItem("profile"));
 
 
     function onLoad() {
@@ -130,18 +133,14 @@
         controls = new THREE.VRControls(camera);
 
         //*Set standing to 'true' to indicate that the user is standing
-        //controls.standing = true;
+        controls.standing = true;
         //*Set the camera vertical position to the eye level of user
         camera.position.y = controls.userHeight;
-        //camera.position.z = 3;
 
         // Apply VR stereo rendering to renderer.
         effect = new THREE.VREffect(renderer);
         effect.setSize(window.innerWidth, window.innerHeight);
 
-        // Add a repeating grid as a skybox.
-        /* var loader = new THREE.TextureLoader();
-        loader.load('img/box.png', onTextureLoaded); */
 
         //Add Skybox
         var desertGeometry = new THREE.CubeGeometry(10000, 10000, 10000);
@@ -167,16 +166,35 @@
         scene.add(ambientLight);
 
 
-        // Create 3D objects.
-        var geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-        var material = new THREE.MeshNormalMaterial();
-        cube = new THREE.Mesh(geometry, material);
+        /* Create 3D objects. */
 
-        // Position cube mesh to be right in front of you.
-        cube.position.set(0, controls.userHeight, -1.5);
+        //Add name text
+        var loader = new THREE.FontLoader();
 
-        // Add cube mesh to your three.js scene
-        scene.add(cube);
+        loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
+
+
+            var textGeometry = new THREE.TextGeometry(profile.name, {
+                font: font,
+                size: 80,
+                height: 5,
+                curveSegments: 12,
+                bevelEnabled: true,
+                bevelThickness: 3,
+                bevelSize: 2,
+                bevelSegments: 5
+            });
+
+            var textMaterial = new THREE.MeshBasicMaterial();
+
+            textMesh = new THREE.Mesh(textGeometry, textMaterial);
+
+            textMesh.position.set(-400, controls.userHeight, -550.5);
+
+            console.log(textMesh);
+
+            scene.add(textMesh);
+        });
 
         /* Screen and VR Setup */
 
@@ -208,36 +226,10 @@
         navigator.getVRDisplays().then(function (displays) {
             if (displays.length > 0) {
                 vrDisplay = displays[0];
-                /* if (vrDisplay.stageParameters) {
-                    setStageDimensions(vrDisplay.stageParameters);
-                } */
                 vrDisplay.requestAnimationFrame(animate);
             }
         });
     }
-
-    /* Function to run when the skybox texture is loaded, sets up the skybox mesh and calls setUpStage() */
-    /* function onTextureLoaded(texture) {
-        texture.wrapS = THREE.RepeatWrapping;
-        texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(boxSize, boxSize);
-
-        var geometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
-        var material = new THREE.MeshBasicMaterial({
-            map: texture,
-            color: 0x01BE00,
-            side: THREE.BackSide
-        });
-
-        // Align the skybox to the floor (which is at y=0).
-        skybox = new THREE.Mesh(geometry, material);
-        skybox.position.y = boxSize / 2;
-        scene.add(skybox);
-
-        // For high end VR devices like Vive and Oculus, take into account the stage
-        // parameters provided.
-        setupStage();
-    } */
 
 
 
@@ -247,7 +239,15 @@
         lastRenderTime = timestamp;
 
         // Apply rotation to cube mesh
-        cube.rotation.y += delta * 0.0006;
+        if (cube) {
+            cube.rotation.y += delta * 0.0006;
+        }
+
+        if (textMesh) {
+            textMesh.rotation.x += delta * 0.0003;
+            textMesh.rotation.y += delta * 0.0003;
+            textMesh.rotation.z += delta * 0.0003;
+        }
 
         // Only update controls if we're presenting.
         if (vrButton.isPresenting()) {
@@ -265,37 +265,6 @@
         camera.updateProjectionMatrix();
     }
 
-    // Get the HMD, and if we're dealing with something that specifies
-    // stageParameters, rearrange the scene.
-    /* function setupStage() {
-        navigator.getVRDisplays().then(function (displays) {
-            if (displays.length > 0) {
-                vrDisplay = displays[0];
-                if (vrDisplay.stageParameters) {
-                    setStageDimensions(vrDisplay.stageParameters);
-                }
-                vrDisplay.requestAnimationFrame(animate);
-            }
-        });
-    } */
-
-    /* Setup the stage with the size parameters from the vr display */
-    /* function setStageDimensions(stage) {
-        // Make the skybox fit the stage.
-        var material = skybox.material;
-        scene.remove(skybox);
-
-        // Size the skybox according to the size of the actual stage.
-        var geometry = new THREE.BoxGeometry(stage.sizeX, boxSize, stage.sizeZ);
-        skybox = new THREE.Mesh(geometry, material);
-
-        // Place it on the floor.
-        skybox.position.y = boxSize / 2;
-        scene.add(skybox);
-
-        // Place the cube in the middle of the scene, at user height.
-        cube.position.set(0, controls.userHeight, 0);
-    } */
 
     window.addEventListener('load', onLoad);
 
